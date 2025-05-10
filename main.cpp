@@ -1,111 +1,97 @@
 #include<iostream>
 #include<GL/glut.h>
-#include<math.h>
-#include<stdlib.h>
 using namespace std;
-int selection=1;
-float X1,Y1,X2,Y2;
-class Line{
-    void dda(){
-        float dx,dy,xin,yin,step,x,y;
-        dx=X2-X1;
-        dy=Y2-Y1;
-        cout<<"DDA"<<endl;
-        x=X1,y=Y1;
-        if(abs(dx)>abs(dy)){
-            step=dx;
-        }
-        else{
-            step=dy;
-        }
-        xin=dx/step;
-        yin=dy/step;
-        glBegin(GL_POINTS);
-        glColor3f(1.0,1.0,0);
-        glVertex2f(x,y);
-        glEnd();
-        for(int i=1;i<=step;i++){
-            x+=xin;
-            y+=yin;
-            glBegin(GL_POINTS);
-            glColor3f(1.0,1.0,0);
-            glVertex2f(x,y);
-        }
-        glEnd();
-        glutPostRedisplay();
-        glFlush();
-    }
-    void Bresenham(){
-        cout<<"Bresenham"<<endl;
-        float x,y,dx,dy,pk;
-        x=X1,y=Y1,dx=X2-X1,dy=Y2-Y1;
-        pk=2*dy-dx;
-        for(int i=1;i<=dx;i++){
-            glBegin(GL_POINTS);
-            glColor3f(0.0,0.5,0);
-            glVertex2i(x,y);
-            if(pk<0){
-                pk+=2*dy;
-                x+=1;
-            }
-            else{
-                pk+=2*dy-2*dx;
-                x+=1;
-                y+=1;
-            }
-        }
-        glEnd();
-        glutPostRedisplay();
-        glFlush();
-    }
-public:
-    static void display(){
-        Line l;
-        switch(selection){
-            case 1:l.dda();break;
-            case 2:l.Bresenham();break;
-            default:break;
-        }
-    }
-};
+int le[500],re[500],flag=0;
 void init(){
     glClearColor(0.0,0.0,0.2,0.0);
+    glColor3f(0.0,1.0,0.0);
+    glPointSize(4.0);
+    glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     glOrtho(-500,500,-500,500,-1,1);
-    glMatrixMode(GL_PROJECTION);
-    glViewport(0,0,640,640);
 }
-void lineGeneration(int i){
-    if(i==4){exit(0);}
-}
-void keyboard(unsigned char key,int x,int y){
-    if(key=='D' || key=='d'){selection =1;}
-    else if(key=='b' || key=='B'){selection=2;}
-    else if(key=='3'){
-        exit(0);
+void edge(int x0,int y0,int x1,int y1){
+    if(y0>y1){
+        swap(x0,x1);
+        swap(y0,y1);
+    }
+    int dx=x1-x0,dy=y1-y0;
+    int x=x0;
+    if(dy!=0){
+        float slope=dx/dy;
+        for(int y=y0;y<y1;y++){
+            if(x<le[y]){
+                le[y]=x;
+            }
+            if(x>re[y]){
+                re[y]=x;
+            }
+            x+=slope;
+        }
     }
 }
-void createMenu(){
-    int s_id=glutCreateMenu(lineGeneration);
-    glutAddMenuEntry("DDA",1);
-    glutAddMenuEntry("Bresenham",2);
-    int m_id=glutCreateMenu(lineGeneration);
-    glutAddSubMenu("Algorithm",s_id);
-    glutAddMenuEntry("Exit",4);
+void display(){
+    glClear(GL_COLOR_BUFFER_BIT);
+    glColor3f(1.0,1.0,0.0);
+    glBegin(GL_LINE_LOOP);
+    glVertex2i(100,100);
+    glVertex2i(300,100);
+    glVertex2i(200,200);
+    glVertex2i(300,300);
+    glVertex2i(100,300);
+    glEnd();
+    for(int i=0;i<500;i++){
+        le[i]=500;
+        re[i]=0;
+    }
+    edge(200,200,300,300);
+    edge(300,300,100,300);
+    edge(100,300,100,100);
+    edge(100,250,100,100);
+    edge(100,100,300,100);
+    edge(300,100,200,200);
+    if(flag==1){
+        glColor3f(1.0,0.0,0.0);
+        for(int i=0;i<500;i++){
+            if(le[i]<re[i]){
+                glBegin(GL_POINTS);
+                for(int j=le[i];j<=re[i];j++){
+                    glVertex2f(j,i);
+                }
+                glEnd();
+            }
+        }
+    }
+    glFlush();
+}
+void scanmenu(int id){
+    if(id==1){
+        flag=1;
+    }
+    else if(id==2){
+        flag=0;
+    }
+    else{
+        exit(0);
+    }
+    glutPostRedisplay();
+}
+void createmenu(){
+    int s_id=glutCreateMenu(scanmenu);
+    glutAddMenuEntry("Fill",1);
+    glutAddMenuEntry("Clear",2);
+    glutAddMenuEntry("Exit",3);
     glutAttachMenu(GLUT_RIGHT_BUTTON);
 }
 int main(int argc,char**argv){
-    cout<<"Enter coordinates : ";
-    cin>>X1>>Y1>>X2>>Y2;
     glutInit(&argc,argv);
     glutInitDisplayMode(GLUT_RGB);
-    glutInitWindowPosition(200,200);
-    glutInitWindowSize(500,500);
-    glutCreateWindow("Line Generation ");
+    glutInitWindowSize(640,480);
+    glutInitWindowPosition(100,150);
+    glutCreateWindow("Scaline Algo");
+    createmenu();
+    glutDisplayFunc(display);
     init();
-    glutDisplayFunc(Line :: display);
-    glutKeyboardFunc(keyboard);
-    createMenu();
     glutMainLoop();
     return 0;
 }
